@@ -1,14 +1,11 @@
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import Dock from '@/components/ui/dock'
-import { AnalystIcon, BrainIcon, FoundersIcon, FundIcon, PipelineIcon } from '@/components/ui/nav-icons'
+import { AnalystIcon, PipelineIcon } from '@/components/ui/nav-icons'
 import { LearningToast } from './LearningToast'
 import { TopBar } from './TopBar'
 
 function routeLabel(pathname: string): string {
-  if (pathname === '/' || pathname.startsWith('/company')) return 'Brain'
-  if (pathname.startsWith('/pipeline')) return 'Pipeline'
-  if (pathname.startsWith('/founders')) return 'Founders'
-  if (pathname.startsWith('/fund')) return 'Fund'
+  if (pathname === '/' || pathname.startsWith('/pipeline') || pathname.startsWith('/company')) return 'Pipeline'
   if (pathname.startsWith('/analyst')) return 'Analyst'
   return ''
 }
@@ -18,10 +15,7 @@ export function Shell() {
   const location = useLocation()
 
   const items = [
-    { icon: BrainIcon, label: 'Brain', onClick: () => navigate('/') },
     { icon: PipelineIcon, label: 'Pipeline', onClick: () => navigate('/pipeline') },
-    { icon: FoundersIcon, label: 'Founders', onClick: () => navigate('/founders') },
-    { icon: FundIcon, label: 'Fund', onClick: () => navigate('/fund') },
     { icon: AnalystIcon, label: 'Analyst', onClick: () => navigate('/analyst') },
   ]
 

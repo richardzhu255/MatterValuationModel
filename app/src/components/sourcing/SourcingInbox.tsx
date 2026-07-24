@@ -1,9 +1,10 @@
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ACCENT } from '../brain/BrainCanvas'
 import { api } from '../../lib/api/client'
 import type { Company } from '../../lib/types'
+
+const ACCENT = '#4de088'
 import type { LatLng } from '../../lib/geo'
 import { cityLatLng } from '../../lib/geo'
 import { useAppStore } from '../../state/store'

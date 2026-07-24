@@ -322,6 +322,11 @@ export const api = {
     return data.companies.find((c) => c.id === id)
   },
 
+  async addCompany(company: Company): Promise<Company> {
+    mergeSourcedCompanies([company])
+    return data.companies.find((item) => item.id === company.id) ?? company
+  },
+
   async getCompanyWorkbookPreview(
     company: Company,
     kind: CompanyWorkbookKind,

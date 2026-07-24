@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { Dropdown } from '../../components/ui/dropdown'
 import { MonthGrid, type CalendarEvent } from '../../components/calendar/MonthGrid'
 import { CalendarSyncDialog, type CalendarConnection } from '../../components/calendar/CalendarSyncDialog'
+import { AddCompanyDialog, type NewCompany } from '../../components/pipeline/AddCompanyDialog'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { FitInfo } from '../../components/ui/FitInfo'
 import { SourceCompaniesDialog, buildSourcePrompt, type SourceBrief } from '../../components/sourcing/SourceCompaniesDialog'
@@ -219,6 +220,7 @@ export function PipelinePage() {
   const [locationFilter, setLocationFilter] = useState('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchNotice, setBatchNotice] = useState('')
+  const [addCompanyOpen, setAddCompanyOpen] = useState(false)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [calendarSyncOpen, setCalendarSyncOpen] = useState(false)
   const [calendarConnection, setCalendarConnection] = useState<CalendarConnection | null>(() => {
@@ -318,6 +320,29 @@ export function PipelinePage() {
     navigate('/analyst', { state: { sourcePrompt: buildSourcePrompt(brief) } })
   }
 
+  async function addCompany(input: NewCompany) {
+    const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'company'
+    const company = await api.addCompany({
+      id: `manual-${slug}-${Date.now()}`,
+      ...input,
+      type: 'sourced',
+      fitScore: 50,
+      summary: input.oneLiner,
+      founderIds: [],
+      analogues: [],
+      risks: [],
+      diligenceQuestions: [],
+      reasonsToInvest: [],
+      reasonsToPass: [],
+      competitors: [],
+      dealStage: 'Sourced',
+      sourcedAt: new Date().toISOString(),
+    })
+    setCompanies((previous) => [...previous.filter((item) => item.id !== company.id), company])
+    setAddCompanyOpen(false)
+    navigate(`/company/${company.id}`)
+  }
+
   return (
     <div className="mx-auto max-w-[1280px] p-8 pb-28">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -327,6 +352,15 @@ export function PipelinePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setAddCompanyOpen(true)}
+            className="flex h-11 w-11 items-center justify-center border-2 border-hairline-strong bg-card text-2xl font-medium leading-none text-ink shadow-brutal-sm hover:bg-bone"
+            aria-label="Add company"
+            title="Add company"
+          >
+            +
+          </button>
           <button type="button" onClick={() => setSourceOpen(true)} className="h-11 border-2 border-hairline-strong bg-primary px-5 text-sm font-semibold text-on-primary shadow-brutal-sm hover:bg-primary-deep">
             Source
           </button>
@@ -530,6 +564,7 @@ export function PipelinePage() {
           onOpenMemo={(companyId) => navigate(`/company/${companyId}?tab=files`)}
         />
       )}
+      {addCompanyOpen && <AddCompanyDialog onClose={() => setAddCompanyOpen(false)} onAdd={addCompany} />}
       {sourceOpen && <SourceCompaniesDialog onClose={() => setSourceOpen(false)} onSource={sourceCompanies} />}
       {calendarSyncOpen && <CalendarSyncDialog connection={calendarConnection} onClose={() => setCalendarSyncOpen(false)} onConnect={connectCalendar} onDisconnect={disconnectCalendar} />}
     </div>

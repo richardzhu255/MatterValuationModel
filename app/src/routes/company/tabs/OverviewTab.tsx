@@ -295,9 +295,6 @@ export function OverviewTab({ company, founders }: { company: Company; founders:
               ))}
             </div>
             <p className="mt-3 text-sm text-mute">{f.background}</p>
-            <NavLink to="/founders" className="caption-tight mt-3 inline-block text-primary">
-              score rationale →
-            </NavLink>
           </Card>
         ))}
 

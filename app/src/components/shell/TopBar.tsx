@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { Pill } from '../ui/Pill'
 
 function crumb(pathname: string): string {
-  if (pathname === '/') return 'brain'
+  if (pathname === '/') return 'pipeline'
   if (pathname.startsWith('/company/')) return `company/${pathname.split('/')[2] ?? ''}`
   return pathname.slice(1)
 }

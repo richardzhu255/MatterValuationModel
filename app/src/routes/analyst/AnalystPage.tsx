@@ -203,7 +203,8 @@ export function AnalystPage() {
 
   /* Fly a chip per sourced item into its dock icon, so "it went somewhere"
      is visible. Capped at 3 chips plus a +N overflow chip. */
-  function spawnFlights(labels: string[], dockLabel: 'Founders' | 'Pipeline') {
+  function spawnFlights(labels: string[]) {
+    const dockLabel = 'Pipeline'
     const target = document.querySelector(`[data-dock-label="${dockLabel}"]`)?.getBoundingClientRect()
     if (!target) return
     const source = liveTraceRef.current?.getBoundingClientRect()
@@ -232,7 +233,7 @@ export function AnalystPage() {
           ...current,
           [assistantIndex]: [...(current[assistantIndex] ?? []), ...event.founders.map((f) => f.id)],
         }))
-        spawnFlights(event.founders.map((f) => f.name), 'Founders')
+        spawnFlights(event.founders.map((f) => f.name))
       }
       if (event.type === 'companies_sourced' && event.companies.length) {
         setSourcedCompanies((current) => {
@@ -243,7 +244,7 @@ export function AnalystPage() {
             .map((company) => ({ id: company.id, name: company.name }))
           return { ...current, [assistantIndex]: [...prior, ...added] }
         })
-        spawnFlights(event.companies.map((c) => c.name), 'Pipeline')
+        spawnFlights(event.companies.map((c) => c.name))
       }
       setTraces((current) => {
         const run = applyTraceEvent(current[assistantIndex], event)
@@ -341,10 +342,10 @@ export function AnalystPage() {
                     {sourcedCompanies[i].map((company) => (
                       <Link
                         key={company.id}
-                        to={`/?new=${encodeURIComponent(company.id)}`}
+                        to="/pipeline"
                         className="inline-flex items-center gap-1.5 font-medium text-primary underline underline-offset-2"
                       >
-                        View {company.name} on graph
+                        View {company.name} in Pipeline
                         <span aria-hidden>→</span>
                       </Link>
                     ))}
@@ -352,11 +353,11 @@ export function AnalystPage() {
                 ) : null}
                 {m.role === 'assistant' && sourcedFounders[i]?.length ? (
                   <Link
-                    to={`/founders?new=${sourcedFounders[i].join(',')}`}
+                    to="/pipeline"
                     className="mt-3 inline-flex items-center gap-1.5 font-medium text-primary underline underline-offset-2"
                   >
                     View {sourcedFounders[i].length} new{' '}
-                    {sourcedFounders[i].length === 1 ? 'lead' : 'leads'} in Founder Leads
+                    {sourcedFounders[i].length === 1 ? 'lead' : 'leads'} in Pipeline
                     <span aria-hidden>→</span>
                   </Link>
                 ) : null}
