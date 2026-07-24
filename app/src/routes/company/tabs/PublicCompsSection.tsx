@@ -3,7 +3,7 @@ import { Card } from '../../../components/ui/Card'
 import { Eyebrow } from '../../../components/ui/Eyebrow'
 import type { Company } from '../../../lib/types'
 
-type CompRow = {
+export type CompRow = {
   id: string
   company: string
   ticker: string
@@ -31,7 +31,7 @@ const SAMPLE_COMPS = [
   ['GitLab', 'GTLB', 7.4, 48, 24, 89, 16],
 ] as const
 
-function seedComps(company: Company): CompRow[] {
+export function seedComps(company: Company): CompRow[] {
   const competitorNames = company.competitors.map((competitor) => competitor.name)
   const names = [...new Set([...competitorNames, ...SAMPLE_COMPS.map(([name]) => name)])].slice(0, 6)
   return names.map((name, index) => {
@@ -94,21 +94,31 @@ export function PublicCompsSection({
   company,
   targetMatterProceeds,
   onSelectedMultipleChange,
+  comps,
+  onCompsChange,
 }: {
   company: Company
   targetMatterProceeds: number
   onSelectedMultipleChange: (selection: CompsSelection) => void
+  comps?: CompRow[]
+  onCompsChange?: (comps: CompRow[]) => void
 }) {
-  const [comps, setComps] = useState<CompRow[]>(() => seedComps(company))
+  const [internalComps, setInternalComps] = useState<CompRow[]>(() => comps ?? seedComps(company))
+  const activeComps = comps ?? internalComps
   const [method, setMethod] = useState<'revenue' | 'ebitda'>('revenue')
   const [override, setOverride] = useState('')
 
   function updateComp(id: string, patch: Partial<CompRow>) {
-    setComps((rows) => rows.map((row) => row.id === id ? { ...row, ...patch } : row))
+    const next = activeComps.map((row) => row.id === id ? { ...row, ...patch } : row)
+    if (onCompsChange) {
+      onCompsChange(next)
+    } else {
+      setInternalComps(next)
+    }
   }
 
   function addComp() {
-    setComps((rows) => [...rows, {
+    const next = [...activeComps, {
       id: `comp-${Date.now()}`,
       company: 'New comparable',
       ticker: '',
@@ -119,10 +129,15 @@ export function PublicCompsSection({
       grossMargin: 70,
       ebitdaMargin: 15,
       included: true,
-    }])
+    }]
+    if (onCompsChange) {
+      onCompsChange(next)
+    } else {
+      setInternalComps(next)
+    }
   }
 
-  const included = comps.filter((comp) => comp.included)
+  const included = activeComps.filter((comp) => comp.included)
   const metrics = useMemo(() => ({
     revenue: included.map((comp) => comp.evRevenue),
     ebitda: included.map((comp) => comp.evEbitda),
@@ -163,7 +178,7 @@ export function PublicCompsSection({
           <p className="mt-1 max-w-[760px] text-sm text-body">Select the companies that belong in the peer set, adjust illustrative metrics, and choose the multiple used for the exit case.</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="code-sm border-2 border-hairline-strong bg-card px-3 py-2 text-charcoal">{included.length} of {comps.length} included</span>
+          <span className="code-sm border-2 border-hairline-strong bg-card px-3 py-2 text-charcoal">{included.length} of {activeComps.length} included</span>
           <button type="button" onClick={addComp} className="code-sm flex h-10 items-center gap-2 border-2 border-hairline-strong bg-primary px-3 font-semibold text-on-primary shadow-brutal-sm hover:bg-primary-deep">
             <span className="text-base">+</span> Add comp
           </button>
@@ -184,7 +199,7 @@ export function PublicCompsSection({
             </tr>
           </thead>
           <tbody>
-            {comps.map((comp, index) => (
+            {activeComps.map((comp, index) => (
               <tr key={comp.id} className={`group transition-colors hover:bg-secondary hover:-outline-offset-2 hover:outline-2 hover:outline-charcoal ${index % 2 ? 'bg-bone' : 'bg-card'}`}>
                 <td className="border-r border-t border-hairline-strong px-3 py-3 text-center">
                   <input type="checkbox" checked={comp.included} onChange={(event) => updateComp(comp.id, { included: event.target.checked })} className="h-4 w-4 accent-[#4de088]" aria-label={`Include ${comp.company}`} />
@@ -204,7 +219,14 @@ export function PublicCompsSection({
                 <td className="border-r border-t border-hairline-strong px-3 py-3"><NumberCell label={`${comp.company} gross margin`} value={comp.grossMargin} suffix="%" onChange={(grossMargin) => updateComp(comp.id, { grossMargin })} /></td>
                 <td className="border-r border-t border-hairline-strong px-3 py-3"><NumberCell label={`${comp.company} EBITDA margin`} value={comp.ebitdaMargin} suffix="%" onChange={(ebitdaMargin) => updateComp(comp.id, { ebitdaMargin })} /></td>
                 <td className="border-t border-hairline-strong px-3 py-3">
-                  <button type="button" onClick={() => setComps((rows) => rows.filter((row) => row.id !== comp.id))} className="h-8 w-8 border-2 border-hairline-strong bg-card text-lg font-semibold leading-none hover:bg-secondary" aria-label={`Remove ${comp.company}`}>−</button>
+                  <button type="button" onClick={() => {
+                    const next = activeComps.filter((row) => row.id !== comp.id)
+                    if (onCompsChange) {
+                      onCompsChange(next)
+                    } else {
+                      setInternalComps(next)
+                    }
+                  }} className="h-8 w-8 border-2 border-hairline-strong bg-card text-lg font-semibold leading-none hover:bg-secondary" aria-label={`Remove ${comp.company}`}>−</button>
                 </td>
               </tr>
             ))}

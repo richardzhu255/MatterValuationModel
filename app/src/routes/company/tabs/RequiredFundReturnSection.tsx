@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { Eyebrow } from '../../../components/ui/Eyebrow'
 import type { Company } from '../../../lib/types'
@@ -19,6 +19,9 @@ const fullMoney = new Intl.NumberFormat('en-US', {
 })
 
 const HEAT = ['bg-[#ffd9d4]', 'bg-[#ffe6ca]', 'bg-[#fff0b8]', 'bg-[#e5f2bd]', 'bg-[#d5f2d7]']
+
+export type OwnershipPath = 'benchmark' | 'pro-rata' | 'no-follow-on'
+export type Scenario = 'Base' | 'Upside' | 'Conservative'
 
 function MoneyControl({
   value,
@@ -88,21 +91,45 @@ export function RequiredFundReturnSection({
   compsSelection,
   modeledExitOwnershipPct,
   totalMatterInvestment,
+  ownershipPath,
+  onOwnershipPathChange,
+  scenario,
+  onScenarioChange,
+  fundReturnTarget,
+  onFundReturnTargetChange,
+  netDebt,
+  onNetDebtChange,
+  exitYearTam,
+  onExitYearTamChange,
+  operatingDriver,
+  onOperatingDriverChange,
+  revenuePerUnit,
+  onRevenuePerUnitChange,
+  holdingPeriod,
+  onHoldingPeriodChange,
 }: {
   company: Company
   financingInputs: FinancingInputs
   compsSelection: CompsSelection
   modeledExitOwnershipPct: number
   totalMatterInvestment: number
+  ownershipPath: OwnershipPath
+  onOwnershipPathChange: (value: OwnershipPath) => void
+  scenario: Scenario
+  onScenarioChange: (value: Scenario) => void
+  fundReturnTarget: number
+  onFundReturnTargetChange: (value: number) => void
+  netDebt: number
+  onNetDebtChange: (value: number) => void
+  exitYearTam: number
+  onExitYearTamChange: (value: number) => void
+  operatingDriver: string
+  onOperatingDriverChange: (value: string) => void
+  revenuePerUnit: number
+  onRevenuePerUnitChange: (value: number) => void
+  holdingPeriod: number
+  onHoldingPeriodChange: (value: number) => void
 }) {
-  const [ownershipPath, setOwnershipPath] = useState<'benchmark' | 'pro-rata' | 'no-follow-on'>('benchmark')
-  const [scenario, setScenario] = useState<'Base' | 'Upside' | 'Conservative'>('Base')
-  const [fundReturnTarget, setFundReturnTarget] = useState(60_000_000)
-  const [netDebt, setNetDebt] = useState(0)
-  const [exitYearTam, setExitYearTam] = useState(12_000_000_000)
-  const [operatingDriver, setOperatingDriver] = useState('Customers')
-  const [revenuePerUnit, setRevenuePerUnit] = useState(2_500_000)
-  const [holdingPeriod, setHoldingPeriod] = useState(8)
 
   const pathFactor = ownershipPath === 'pro-rata' ? 1.15 : ownershipPath === 'no-follow-on' ? 0.8 : 1
   const scenarioFactor = scenario === 'Upside' ? 1.1 : scenario === 'Conservative' ? 0.9 : 1
@@ -175,14 +202,14 @@ export function RequiredFundReturnSection({
       <Card className="overflow-hidden p-0">
         <div className="border-b-2 border-hairline-strong bg-bone p-5"><Eyebrow>Underwriting controls</Eyebrow></div>
         <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
-          <label><span className="code-sm uppercase text-mute">Ownership path</span><select value={ownershipPath} onChange={(event) => setOwnershipPath(event.target.value as typeof ownershipPath)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold"><option value="benchmark">Benchmark follow-on</option><option value="pro-rata">Maintain pro rata</option><option value="no-follow-on">No future follow-ons</option></select></label>
-          <label><span className="code-sm uppercase text-mute">Financing scenario</span><select value={scenario} onChange={(event) => setScenario(event.target.value as typeof scenario)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold"><option>Base</option><option>Upside</option><option>Conservative</option></select></label>
-          <label><span className="code-sm uppercase text-mute">Fund return target</span><MoneyControl label="Fund return target" value={fundReturnTarget} onChange={setFundReturnTarget} /></label>
-          <label><span className="code-sm uppercase text-mute">Net debt at exit</span><MoneyControl label="Net debt at exit" value={netDebt} onChange={setNetDebt} /></label>
-          <label><span className="code-sm uppercase text-mute">Exit-year TAM</span><MoneyControl label="Exit-year TAM" value={exitYearTam} onChange={setExitYearTam} /></label>
-          <label><span className="code-sm uppercase text-mute">Operating driver</span><input value={operatingDriver} onChange={(event) => setOperatingDriver(event.target.value)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold outline-none focus:outline-2 focus:outline-ring-focus" /></label>
-          <label><span className="code-sm uppercase text-mute">Revenue per driver unit</span><MoneyControl label="Revenue per driver unit" value={revenuePerUnit} onChange={setRevenuePerUnit} /></label>
-          <label><span className="code-sm uppercase text-mute">Holding period</span><div className="mt-2 flex border-2 border-hairline-strong bg-card"><input type="number" min="1" max="20" value={holdingPeriod} onChange={(event) => setHoldingPeriod(Math.max(Number(event.target.value), 1))} className="code-md h-11 min-w-0 flex-1 px-3 text-right outline-none" /><span className="code-sm border-l border-hairline-strong bg-bone px-3 py-3">years</span></div></label>
+          <label><span className="code-sm uppercase text-mute">Ownership path</span><select value={ownershipPath} onChange={(event) => onOwnershipPathChange(event.target.value as OwnershipPath)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold"><option value="benchmark">Benchmark follow-on</option><option value="pro-rata">Maintain pro rata</option><option value="no-follow-on">No future follow-ons</option></select></label>
+          <label><span className="code-sm uppercase text-mute">Financing scenario</span><select value={scenario} onChange={(event) => onScenarioChange(event.target.value as Scenario)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold"><option>Base</option><option>Upside</option><option>Conservative</option></select></label>
+          <label><span className="code-sm uppercase text-mute">Fund return target</span><MoneyControl label="Fund return target" value={fundReturnTarget} onChange={onFundReturnTargetChange} /></label>
+          <label><span className="code-sm uppercase text-mute">Net debt at exit</span><MoneyControl label="Net debt at exit" value={netDebt} onChange={onNetDebtChange} /></label>
+          <label><span className="code-sm uppercase text-mute">Exit-year TAM</span><MoneyControl label="Exit-year TAM" value={exitYearTam} onChange={onExitYearTamChange} /></label>
+          <label><span className="code-sm uppercase text-mute">Operating driver</span><input value={operatingDriver} onChange={(event) => onOperatingDriverChange(event.target.value)} className="mt-2 h-11 w-full border-2 border-hairline-strong bg-card px-3 text-sm font-semibold outline-none focus:outline-2 focus:outline-ring-focus" /></label>
+          <label><span className="code-sm uppercase text-mute">Revenue per driver unit</span><MoneyControl label="Revenue per driver unit" value={revenuePerUnit} onChange={onRevenuePerUnitChange} /></label>
+          <label><span className="code-sm uppercase text-mute">Holding period</span><div className="mt-2 flex border-2 border-hairline-strong bg-card"><input type="number" min="1" max="20" value={holdingPeriod} onChange={(event) => onHoldingPeriodChange(Math.max(Number(event.target.value), 1))} className="code-md h-11 min-w-0 flex-1 px-3 text-right outline-none" /><span className="code-sm border-l border-hairline-strong bg-bone px-3 py-3">years</span></div></label>
         </div>
       </Card>
 

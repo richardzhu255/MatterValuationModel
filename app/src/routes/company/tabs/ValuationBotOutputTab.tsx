@@ -3,8 +3,8 @@ import { Card } from '../../../components/ui/Card'
 import { Eyebrow } from '../../../components/ui/Eyebrow'
 import type { Company } from '../../../lib/types'
 import { calculateFinancing, loadFinancingInputs, normalizeRoundStage } from '../financingRoundData'
-import { PublicCompsSection, type CompsSelection } from './PublicCompsSection'
-import { RequiredFundReturnSection } from './RequiredFundReturnSection'
+import { PublicCompsSection, seedComps, type CompRow, type CompsSelection } from './PublicCompsSection'
+import { RequiredFundReturnSection, type OwnershipPath, type Scenario } from './RequiredFundReturnSection'
 
 type ScheduleRow = {
   stage: string
@@ -138,6 +138,15 @@ export function ValuationBotOutputTab({ company }: { company: Company }) {
     ebitdaMultiple: 24,
   })
   const initialReserve = inputs.matterInvestment * 3
+  const [compsRows, setCompsRows] = useState<CompRow[]>(() => seedComps(company))
+  const [ownershipPath, setOwnershipPath] = useState<OwnershipPath>('benchmark')
+  const [scenario, setScenario] = useState<Scenario>('Base')
+  const [fundReturnTarget, setFundReturnTarget] = useState(60_000_000)
+  const [netDebt, setNetDebt] = useState(0)
+  const [exitYearTam, setExitYearTam] = useState(12_000_000_000)
+  const [operatingDriver, setOperatingDriver] = useState('Customers')
+  const [revenuePerUnit, setRevenuePerUnit] = useState(2_500_000)
+  const [holdingPeriod, setHoldingPeriod] = useState(8)
 
   function updateRow(index: number, patch: Partial<ScheduleRow>) {
     setSchedule((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row))
@@ -182,9 +191,131 @@ export function ValuationBotOutputTab({ company }: { company: Company }) {
   const targetMatterProceeds = Math.max(inputs.matterInvestment * 10, 50_000_000)
   const modeledExitOwnershipPct = [...modeledRows].reverse().find((row) => !row.exit)?.ownership
     ?? current.proFormaMatterOwnershipPct
+  const pathFactor = ownershipPath === 'pro-rata' ? 1.15 : ownershipPath === 'no-follow-on' ? 0.8 : 1
+  const scenarioFactor = scenario === 'Upside' ? 1.1 : scenario === 'Conservative' ? 0.9 : 1
+  const exitOwnershipPct = Math.max(modeledExitOwnershipPct * pathFactor * scenarioFactor, 0.1)
+  const requiredFundReturnExitValue = fundReturnTarget / (exitOwnershipPct / 100)
+  const requiredEquityValue = targetMatterProceeds / (exitOwnershipPct / 100)
+  const requiredEnterpriseValue = requiredEquityValue + netDebt
+  const requiredRevenue = compsSelection.method === 'revenue' && compsSelection.selectedMultiple > 0
+    ? requiredEnterpriseValue / compsSelection.selectedMultiple
+    : 0
+  const requiredEbitda = compsSelection.method === 'ebitda' && compsSelection.selectedMultiple > 0
+    ? requiredEnterpriseValue / compsSelection.selectedMultiple
+    : 0
+  const requiredMarketShare = exitYearTam > 0 && requiredRevenue > 0 ? requiredRevenue / exitYearTam : 0
+  const requiredUnits = revenuePerUnit > 0 && requiredRevenue > 0 ? requiredRevenue / revenuePerUnit : 0
+  const displayUnits = Number.isFinite(requiredUnits) && requiredUnits > 0 ? Math.ceil(requiredUnits).toLocaleString() : 'Insufficient information'
+  const selectedLabel = compsSelection.method === 'revenue' ? 'revenue' : 'EBITDA'
+  const operatingLabel = operatingDriver.toLowerCase().replace(/s$/, '') || 'unit'
   const totalMatterInvestment = schedule
     .filter((row) => !row.exit)
     .reduce((total, row) => total + row.followOn, 0)
+  const summaryParagraph1 = `Matter invests ${fullMoney.format(inputs.matterInvestment)} in ${company.name} at a ${fullMoney.format(current.postMoneyValuation)} post-money valuation, resulting in ${current.proFormaMatterOwnershipPct.toFixed(1)}% initial ownership. Under the ${ownershipPath === 'pro-rata' ? 'pro rata' : ownershipPath === 'no-follow-on' ? 'no follow-on' : 'benchmark follow-on'} case, Matter invests an additional ${fullMoney.format(totalMatterInvestment - inputs.matterInvestment)} and owns approximately ${exitOwnershipPct.toFixed(1)}% at exit. A ${money.format(targetMatterProceeds)} return requires ${fullMoney.format(requiredEquityValue)} of proceeds and a ${fullMoney.format(requiredEquityValue)} exit equity value. Returning Matter’s entire ${fullMoney.format(fundReturnTarget)} fund requires a ${fullMoney.format(requiredFundReturnExitValue)} exit equity value.`
+  const summaryParagraph2 = `At the selected ${compsSelection.selectedMultiple.toFixed(1)}× ${selectedLabel} multiple, ${company.name} must generate approximately ${fullMoney.format(compsSelection.method === 'revenue' ? requiredRevenue : requiredEbitda)} in the exit year. This represents ${(requiredMarketShare * 100).toFixed(1)}% of the estimated market and approximately ${displayUnits} ${operatingLabel}. The required outcome ${requiredRevenue > 0 && requiredMarketShare < 0.2 ? 'appears achievable but aggressive' : 'requires further support from management and market evidence'}.`
+  const summaryText = [summaryParagraph1, summaryParagraph2].join('\n\n')
+  const compMetrics = useMemo(() => {
+    const included = compsRows.filter((row) => row.included)
+    return {
+      revenue: included.map((row) => row.evRevenue),
+      ebitda: included.map((row) => row.evEbitda),
+      growth: included.map((row) => row.revenueGrowth),
+      grossMargin: included.map((row) => row.grossMargin),
+      ebitdaMargin: included.map((row) => row.ebitdaMargin),
+    }
+  }, [compsRows])
+  const q25Revenue = useMemo(() => {
+    const values = compMetrics.revenue
+    if (!values.length) return 0
+    return values.sort((a, b) => a - b)[Math.floor((values.length - 1) * 0.25)]
+  }, [compMetrics.revenue])
+  const q75Revenue = useMemo(() => {
+    const values = [...compMetrics.revenue].sort((a, b) => a - b)
+    if (!values.length) return 0
+    return values[Math.floor((values.length - 1) * 0.75)]
+  }, [compMetrics.revenue])
+  const growthRate = company.model?.growthPct ?? 0
+  const grossMargin = company.model?.grossMarginPct ?? 0
+  const ebitdaMargin = company.model?.grossMarginPct ?? 0
+  const feasibilityRows = [
+    {
+      area: 'Revenue requirement',
+      assessment: compsSelection.selectedMultiple >= q75Revenue ? 'Aggressive' : compsSelection.selectedMultiple >= q25Revenue ? 'Supported' : 'Insufficient information',
+      explanation: compsSelection.selectedMultiple >= q75Revenue
+        ? `The required exit multiple exceeds the public-comp 75th percentile for included comps.`
+        : compsSelection.selectedMultiple >= q25Revenue
+          ? `The selected multiple sits within the public-comp range used for the underwriting case.`
+          : 'The selected multiple could not be benchmarked because the peer set is incomplete.',
+    },
+    {
+      area: 'Growth rate',
+      assessment: growthRate > 0 ? (growthRate >= Math.max(...compMetrics.growth) / 2 ? 'Supported' : 'Aggressive') : 'Insufficient information',
+      explanation: growthRate > 0
+        ? `Management’s projected growth is ${growthRate.toFixed(1)}%, versus the included-comp range of ${Math.min(...compMetrics.growth).toFixed(1)}%–${Math.max(...compMetrics.growth).toFixed(1)}%.`
+        : 'Management growth evidence was not provided.',
+    },
+    {
+      area: 'Gross margin',
+      assessment: grossMargin > 0 ? (grossMargin >= Math.min(...compMetrics.grossMargin) ? 'Supported' : 'Aggressive') : 'Insufficient information',
+      explanation: grossMargin > 0
+        ? `The margin assumption of ${grossMargin.toFixed(1)}% is at or above the included-comp gross margin floor.`
+        : 'No gross-margin evidence was provided to benchmark the required outcome.',
+    },
+    {
+      area: 'EBITDA margin',
+      assessment: ebitdaMargin > 0 ? (ebitdaMargin >= Math.min(...compMetrics.ebitdaMargin) ? 'Supported' : 'Aggressive') : 'Insufficient information',
+      explanation: ebitdaMargin > 0
+        ? `The EBITDA-margin assumption of ${ebitdaMargin.toFixed(1)}% is at or above the included-comp EBITDA margin floor.`
+        : 'No EBITDA-margin evidence was provided to benchmark the required outcome.',
+    },
+    {
+      area: 'Operating scale',
+      assessment: requiredUnits > 0 ? (requiredUnits <= 1_000_000 ? 'Supported' : 'Aggressive') : 'Insufficient information',
+      explanation: requiredUnits > 0
+        ? `The implied operating scale is ${displayUnits} ${operatingLabel} for the selected exit case.`
+        : 'The required operating scale could not be supported because the driver input or revenue-per-unit assumption is missing.',
+    },
+    {
+      area: 'Market share',
+      assessment: requiredMarketShare > 0 ? (requiredMarketShare <= 0.1 ? 'Supported' : requiredMarketShare <= 0.2 ? 'Aggressive' : 'Highly aggressive') : 'Insufficient information',
+      explanation: requiredMarketShare > 0
+        ? `The required market share is ${(requiredMarketShare * 100).toFixed(1)}% of the exit-year TAM assumption.`
+        : 'The TAM input is missing, so the market-share requirement cannot be validated.',
+    },
+    {
+      area: 'Capital requirement',
+      assessment: totalMatterInvestment > 0 ? 'Aggressive' : 'Insufficient information',
+      explanation: totalMatterInvestment > 0
+        ? 'The financing plan requires a meaningful follow-on commitment and should be tested against funding capacity.'
+        : 'A complete capital plan was not provided.',
+    },
+    {
+      area: 'Commercial milestones',
+      assessment: company.summary ? 'Supported' : 'Insufficient information',
+      explanation: company.summary ? 'The company summary provides a baseline narrative for the required operating milestones.' : 'No commercial milestone evidence was supplied for the required outcome.',
+    },
+  ]
+  const overallAssessment = requiredRevenue > 0 && requiredMarketShare > 0.2
+    ? 'Highly aggressive'
+    : requiredRevenue > 0 && requiredMarketShare > 0.1
+      ? 'Achievable but aggressive'
+      : requiredRevenue > 0
+        ? 'Achievable'
+        : 'Insufficient information'
+  const overallExplanation = requiredRevenue > 0 && requiredMarketShare > 0.2
+    ? 'The revenue and operating-scale requirements materially exceed the current peer and management benchmarks, so the case is only supportable with a very strong execution outcome.'
+    : requiredRevenue > 0 && requiredMarketShare > 0.1
+      ? 'The required revenue and operating scale are above the current benchmark range, but the case remains supportable with a stronger go-to-market and margin outcome.'
+      : requiredRevenue > 0
+        ? 'The required outcome is broadly supportable under the selected assumptions.'
+        : 'The required outcome cannot be assessed because the valuation, TAM, or operating inputs are missing.'
+  const handleCopySummary = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(summaryText)
+    } catch {
+      // Ignore clipboard failures and keep the UI responsive.
+    }
+  }, [summaryText])
   const updateSelectedExitMultiple = useCallback((selection: CompsSelection) => {
     setCompsSelection(selection)
   }, [])
@@ -345,7 +476,57 @@ export function ValuationBotOutputTab({ company }: { company: Company }) {
         </div>
       </Card>
 
-      <PublicCompsSection company={company} targetMatterProceeds={targetMatterProceeds} onSelectedMultipleChange={updateSelectedExitMultiple} />
+      <PublicCompsSection company={company} targetMatterProceeds={targetMatterProceeds} onSelectedMultipleChange={updateSelectedExitMultiple} comps={compsRows} onCompsChange={setCompsRows} />
+
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-hairline-strong bg-bone p-5">
+          <div>
+            <Eyebrow>Highlights summary</Eyebrow>
+            <h3 className="heading-md mt-2">Reverse-underwriting memo</h3>
+            <p className="mt-1 max-w-[760px] text-sm text-body">Dynamic narrative built from the financing schedule, selected comps, and required-return outputs.</p>
+          </div>
+          <button type="button" onClick={handleCopySummary} className="code-sm border-2 border-hairline-strong bg-primary px-3 py-2 font-semibold text-on-primary shadow-brutal-sm hover:bg-primary-deep">Copy Memo Text</button>
+        </div>
+        <div className="space-y-4 bg-card p-5">
+          <p className="text-sm leading-7 text-ink">{summaryParagraph1}</p>
+          <p className="text-sm leading-7 text-ink">{summaryParagraph2}</p>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-0">
+        <div className="border-b-2 border-hairline-strong bg-bone p-5">
+          <Eyebrow>Feasibility flags</Eyebrow>
+          <h3 className="heading-md mt-2">Area-by-area underwriting view</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead>
+              <tr className="bg-dark text-on-dark">
+                <th className="caption-tight border-r border-divider-dark px-3 py-3">Area</th>
+                <th className="caption-tight border-r border-divider-dark px-3 py-3">Assessment</th>
+                <th className="caption-tight px-3 py-3">Explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {feasibilityRows.map((row) => (
+                <tr key={row.area} className="bg-card">
+                  <th className="caption-tight border-r border-t border-hairline-strong px-3 py-3">{row.area}</th>
+                  <td className="code-sm border-r border-t border-hairline-strong px-3 py-3">{row.assessment}</td>
+                  <td className="caption border-t border-hairline-strong px-3 py-3 text-charcoal">{row.explanation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-0">
+        <div className="border-b-2 border-hairline-strong bg-bone p-5">
+          <Eyebrow>Overall assessment</Eyebrow>
+          <h3 className="heading-md mt-2">{overallAssessment}</h3>
+          <p className="mt-2 text-sm text-body">{overallExplanation}</p>
+        </div>
+      </Card>
 
       <RequiredFundReturnSection
         company={company}
@@ -353,6 +534,22 @@ export function ValuationBotOutputTab({ company }: { company: Company }) {
         compsSelection={compsSelection}
         modeledExitOwnershipPct={modeledExitOwnershipPct}
         totalMatterInvestment={totalMatterInvestment}
+        ownershipPath={ownershipPath}
+        onOwnershipPathChange={setOwnershipPath}
+        scenario={scenario}
+        onScenarioChange={setScenario}
+        fundReturnTarget={fundReturnTarget}
+        onFundReturnTargetChange={setFundReturnTarget}
+        netDebt={netDebt}
+        onNetDebtChange={setNetDebt}
+        exitYearTam={exitYearTam}
+        onExitYearTamChange={setExitYearTam}
+        operatingDriver={operatingDriver}
+        onOperatingDriverChange={setOperatingDriver}
+        revenuePerUnit={revenuePerUnit}
+        onRevenuePerUnitChange={setRevenuePerUnit}
+        holdingPeriod={holdingPeriod}
+        onHoldingPeriodChange={setHoldingPeriod}
       />
     </div>
   )
