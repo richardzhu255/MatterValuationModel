@@ -75,7 +75,7 @@ export function ExpandableCard({
               layoutId={`card-${title}-${id}`}
               ref={cardRef}
               className={cn(
-                'relative grid max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-[900px] grid-cols-1 overflow-y-auto border-2 border-hairline-strong bg-card shadow-brutal [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] md:h-[min(720px,calc(100vh-3rem))] md:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] md:overflow-hidden dark:bg-zinc-950 dark:shadow-none',
+                'relative grid max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-[900px] grid-cols-1 overflow-y-auto border-2 border-hairline-strong bg-card shadow-brutal [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] md:h-[min(720px,calc(100vh-3rem))] md:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] md:overflow-hidden dark:bg-black dark:shadow-none',
                 classNameExpanded,
               )}
               {...props}
@@ -104,7 +104,7 @@ export function ExpandableCard({
                   <motion.button
                     aria-label="Close card"
                     layoutId={`button-${title}-${id}`}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-none border-2 border-hairline-strong bg-card text-ink transition-colors hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring-focus active:translate-y-px dark:bg-zinc-950 dark:text-white"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-none border-2 border-hairline-strong bg-card text-ink transition-colors hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring-focus active:translate-y-px dark:bg-black dark:text-white"
                     onClick={() => setActive(false)}
                   >
                     <motion.div animate={{ rotate: active ? 45 : 0 }} transition={{ duration: 0.4 }}>
@@ -167,7 +167,7 @@ export function ExpandableCard({
             <div className="flex min-w-0 flex-1 flex-col">
               <motion.p
                 layoutId={`description-${description}-${id}`}
-                className="min-w-0 text-sm font-medium text-zinc-500 md:text-left dark:text-zinc-400"
+                className="min-w-0 text-sm font-medium text-ink/60 md:text-left dark:text-white/70"
               >
                 {description}
               </motion.p>
@@ -182,7 +182,7 @@ export function ExpandableCard({
               aria-hidden="true"
               layoutId={`button-${title}-${id}`}
               className={cn(
-                'h-8 w-8 shrink-0 flex items-center justify-center rounded-none border-2 border-hairline-strong bg-zinc-50 dark:bg-zinc-950 text-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-950 dark:text-white/70 text-black/70 border border-gray-200/90 dark:border-zinc-900 hover:border-gray-300/90 hover:text-black dark:hover:text-white dark:hover:border-zinc-800 transition-colors duration-300  focus:outline-none',
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-none border-2 border-hairline-strong bg-white text-black/70 transition-colors duration-300 hover:bg-bone hover:text-black focus:outline-none dark:bg-black dark:text-white/70 dark:hover:bg-black dark:hover:text-white',
                 className,
               )}
             >

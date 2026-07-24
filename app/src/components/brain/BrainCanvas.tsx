@@ -25,12 +25,11 @@ interface Props {
   axisLabels?: [string, string, string]
 }
 
-/* Final mockup palette (light mode): mid-tone sector colors that read on
-   white; sourced candidates take their sector color, and the blue accent is
-   reserved for closed (portfolio) deals + focus states. */
-export const SECTOR_PALETTE = ['#bd66a8', '#4f9ec4', '#7d6bc9', '#c08a3e', '#4faa74', '#c96666']
-export const ACCENT = '#266df0' // Attio blue-500: closed deals, hover ring, focus, fit bar
-export const REJECTED_COLOR = '#b9bec8'
+/* Matter palette: sectors cycle through the four brand colors, while green is
+   reserved for closed (portfolio) deals and focus states. */
+export const SECTOR_PALETTE = ['#4de088', '#000000', '#ebebeb', '#4de088', '#000000', '#ebebeb']
+export const ACCENT = '#4de088'
+export const REJECTED_COLOR = '#ebebeb'
 const SHOW_LINES = true // semantic graph edges remain visible at rest
 
 function mulberry32(seed: number) {
@@ -242,7 +241,7 @@ export const BrainCanvas = forwardRef<BrainHandle, Props>(function BrainCanvas({
       ], 3))
       const axisLines = new THREE.LineSegments(
         axisGeometry,
-        new THREE.LineBasicMaterial({ color: 0x161616, transparent: true, opacity: 0.72, depthTest: false }),
+        new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.72, depthTest: false }),
       )
       axisLines.renderOrder = 0
       group.add(axisLines)
@@ -338,7 +337,7 @@ export const BrainCanvas = forwardRef<BrainHandle, Props>(function BrainCanvas({
           if (vOutline > 0.5) {
             float r = length(p);
             float ring = smoothstep(0.6, 0.68, r) * (1.0 - smoothstep(0.86, 0.97, r));
-            col = mix(col, vec3(0.98), ring * 0.85);
+            col = mix(col, vec3(1.0), ring * 0.85);
           }
           gl_FragColor = vec4(col, alpha * vDim);
         }`,
@@ -386,8 +385,8 @@ export const BrainCanvas = forwardRef<BrainHandle, Props>(function BrainCanvas({
     const synapse = new THREE.LineSegments(sGeo, lMat.clone())
     synapse.renderOrder = 1
     group.add(synapse)
-    const synTint = srgb('#5c6f9e')
-    const competitionTint = srgb('#ff3838')
+    const synTint = srgb('#ebebeb')
+    const competitionTint = srgb('#000000')
     const precedentTint = srgb(ACCENT)
 
     /* hover ring: SDF band in a fragment shader on a billboarded quad — crisp at

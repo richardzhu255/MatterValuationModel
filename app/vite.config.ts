@@ -56,8 +56,8 @@ function brainApi(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), brainApi()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), ...(mode === 'frontend' ? [] : [brainApi()])],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),
@@ -70,4 +70,4 @@ export default defineConfig({
       '/api': `http://127.0.0.1:${API_PORT}`,
     },
   },
-})
+}))

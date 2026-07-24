@@ -22,7 +22,7 @@ const hudMono: React.CSSProperties = {
   fontSize: '0.66rem',
   letterSpacing: '0.1em',
   textTransform: 'uppercase',
-  color: '#333333',
+  color: '#000000',
 }
 
 const GRAPH_AXES_STORAGE_KEY = 'vcbrain-custom-graph-axes-v2'

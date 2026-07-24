@@ -144,7 +144,7 @@ export function OverviewTab({ company, founders }: { company: Company; founders:
                       ? [
                           {
                             name: `vs ${company.fingerprint.winner} (winner)`,
-                            color: '#266df0',
+                            color: '#4de088',
                             values: company.fingerprint.dims.map((d) => d.vsWinner),
                           },
                         ]
@@ -153,7 +153,7 @@ export function OverviewTab({ company, founders }: { company: Company; founders:
                       ? [
                           {
                             name: `vs ${company.fingerprint.rejected} (passed)`,
-                            color: '#ff3333',
+                            color: '#000000',
                             values: company.fingerprint.dims.map((d) => d.vsRejected),
                           },
                         ]

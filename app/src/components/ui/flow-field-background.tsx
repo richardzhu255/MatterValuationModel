@@ -41,7 +41,7 @@ export function FlowFieldBackground({
     if (!ctx) return
 
     const color =
-      getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim() || '#ff3333'
+      getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim() || '#4de088'
 
     let width = container.clientWidth
     let height = container.clientHeight

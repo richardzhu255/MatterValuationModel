@@ -72,7 +72,7 @@ export function RadarChart({
               key={`l${t}`}
               x={5}
               y={-R * t + 3}
-              style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fill: '#333333' }}
+              style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fill: '#000000' }}
             >
               {Math.round(t * 100)}
             </text>
@@ -105,7 +105,7 @@ export function RadarChart({
               fontSize: 11,
               letterSpacing: '0.04em',
               textTransform: 'uppercase',
-              fill: hover === i ? '#000000' : '#333333',
+              fill: '#000000',
               fontWeight: hover === i ? 700 : 400,
             }}
           >
