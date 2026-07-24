@@ -8,15 +8,15 @@ import { Card } from '../../components/ui/Card'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { Pill } from '../../components/ui/Pill'
 import { ModelTab } from './tabs/ModelTab'
-import { MarketTab } from './tabs/MarketTab'
 import { FilesTab } from './tabs/FilesTab'
 import { OverviewTab } from './tabs/OverviewTab'
 import { CurrentFinancingRoundTab } from './tabs/CurrentFinancingRoundTab'
 import { ValuationBotOutputTab } from './tabs/ValuationBotOutputTab'
 
-const BASE_TABS = ['Overview', 'Market map', 'Model', 'Current Financing Round', 'Files'] as const
+const BASE_TABS = ['Overview', 'Model', 'Current Financing Round', 'Files'] as const
 type Tab = (typeof BASE_TABS)[number] | 'Valuation Bot Output'
 type ValuationBotStatus = 'idle' | 'loading' | 'ready'
+const VALUATION_OUTPUT_KEY = 'matter-valuation-output-v1:'
 
 function ValuationBotLoading({ companyName }: { companyName: string }) {
   return (
@@ -87,8 +87,12 @@ export function CompanyPage() {
     if (!id) return
     // ?tab= opens a specific tab (demo/screenshot aid), else reset to Overview
     const param = new URLSearchParams(window.location.search).get('tab')
-    setTab(BASE_TABS.find((t) => t.toLowerCase() === param?.toLowerCase()) ?? 'Overview')
-    setValuationBotStatus('idle')
+    const outputReady = localStorage.getItem(`${VALUATION_OUTPUT_KEY}${id}`) === 'ready'
+    const requestedOutput = param?.toLowerCase() === 'valuation bot output'
+    setTab(requestedOutput && outputReady
+      ? 'Valuation Bot Output'
+      : BASE_TABS.find((t) => t.toLowerCase() === param?.toLowerCase()) ?? 'Overview')
+    setValuationBotStatus(outputReady ? 'ready' : 'idle')
     api.getCompany(id).then((c) => setCompany(c ?? null))
     api.getFounders().then((all) => setFounders(all.filter((f) => f.companyId === id)))
   }, [id])
@@ -96,11 +100,12 @@ export function CompanyPage() {
   useEffect(() => {
     if (valuationBotStatus !== 'loading') return
     const timer = window.setTimeout(() => {
+      if (id) localStorage.setItem(`${VALUATION_OUTPUT_KEY}${id}`, 'ready')
       setValuationBotStatus('ready')
       setTab('Valuation Bot Output')
     }, 3_000)
     return () => window.clearTimeout(timer)
-  }, [valuationBotStatus])
+  }, [id, valuationBotStatus])
 
   if (!company) {
     return (
@@ -174,7 +179,6 @@ export function CompanyPage() {
 
       <div className="mt-6">
         {tab === 'Overview' && <OverviewTab company={company} founders={founders} />}
-        {tab === 'Market map' && <MarketTab company={company} />}
         {tab === 'Model' && <ModelTab company={company} />}
         {tab === 'Current Financing Round' && (
           <CurrentFinancingRoundTab company={company} onLaunchValuationBot={() => setValuationBotStatus('loading')} />
